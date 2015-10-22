@@ -3,6 +3,7 @@ Note:
 device tree patches are required, this patch includes such for Nexus 6.
 Missing file is the actual su binary, generated from source as follows;
 https://github.com/phhusson/Superuser/commit/de6eff7c5ef3b64dde4dc5f85cd89dadddac273a
+** copy the su binary into device/moto/shamu/
 
 Also note that this patch places selinux into permissive mode. This is only
 TEMPORARY until the sepolicy can be worked out further.
