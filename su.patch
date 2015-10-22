@@ -1,0 +1,205 @@
+
+project build/
+diff --git a/core/main.mk b/core/main.mk
+index 5b6e1e9..9c2a70f 100644
+--- a/core/main.mk
++++ b/core/main.mk
+@@ -176,7 +176,7 @@ endif
+ # For Java 1.7, we require OpenJDK on linux and Oracle JDK on Mac OS.
+ requires_openjdk := false
+ ifeq ($(HOST_OS), linux)
+-requires_openjdk := true
++requires_openjdk := false
+ endif
+ 
+ 
+
+project device/moto/shamu/
+diff --git a/BoardConfig.mk b/BoardConfig.mk
+index 4df1948..1d4e4d9 100644
+--- a/BoardConfig.mk
++++ b/BoardConfig.mk
+@@ -27,7 +27,7 @@ BOARD_KERNEL_PAGESIZE :=  2048
+ BOARD_KERNEL_TAGS_OFFSET := 0x01E00000
+ BOARD_RAMDISK_OFFSET     := 0x02000000
+ 
+-BOARD_KERNEL_CMDLINE := console=ttyHSL0,115200,n8 androidboot.console=ttyHSL0 androidboot.hardware=shamu msm_rtb.filter=0x37 ehci-hcd.park=3 utags.blkdev=/dev/block/platform/msm_sdcc.1/by-name/utags utags.backup=/dev/block/platform/msm_sdcc.1/by-name/utagsBackup coherent_pool=8M
++BOARD_KERNEL_CMDLINE := console=ttyHSL0,115200,n8 androidboot.console=ttyHSL0 androidboot.hardware=shamu msm_rtb.filter=0x37 ehci-hcd.park=3 utags.blkdev=/dev/block/platform/msm_sdcc.1/by-name/utags utags.backup=/dev/block/platform/msm_sdcc.1/by-name/utagsBackup coherent_pool=8M androidboot.selinux=permissive
+ 
+ BOARD_MKBOOTIMG_ARGS := --ramdisk_offset $(BOARD_RAMDISK_OFFSET) --tags_offset $(BOARD_KERNEL_TAGS_OFFSET)
+ 
+diff --git a/device.mk b/device.mk
+index 2c313ec..18b9498 100644
+--- a/device.mk
++++ b/device.mk
+@@ -35,7 +35,8 @@ PRODUCT_COPY_FILES += \
+     device/moto/shamu/init.shamu.power.rc:root/init.shamu.power.rc \
+     device/moto/shamu/init.shamu.usb.rc:root/init.shamu.usb.rc \
+     device/moto/shamu/fstab.shamu:root/fstab.shamu \
+-    device/moto/shamu/ueventd.shamu.rc:root/ueventd.shamu.rc
++    device/moto/shamu/ueventd.shamu.rc:root/ueventd.shamu.rc \
++    device/moto/shamu/su:root/sbin/su
+ 
+ # Input device files for shamu
+ PRODUCT_COPY_FILES += \
+diff --git a/fstab.shamu b/fstab.shamu
+index bba200b..b1e8619 100644
+--- a/fstab.shamu
++++ b/fstab.shamu
+@@ -3,8 +3,8 @@
+ # specify MF_CHECK, and must come before any filesystems that do specify MF_CHECK
+ #
+ #<src>                                                <mnt_point>  <type>  <mnt_flags and options>                     <fs_mgr_flags>
+-/dev/block/platform/msm_sdcc.1/by-name/system         /system      ext4    ro,barrier=1                                wait,verify=/dev/block/platform/msm_sdcc.1/by-name/metadata
+-/dev/block/platform/msm_sdcc.1/by-name/userdata    /data        ext4    rw,nosuid,nodev,noatime,nodiratime,noauto_da_alloc,nobarrier    wait,check,formattable,forceencrypt=/dev/block/platform/msm_sdcc.1/by-name/metadata
++/dev/block/platform/msm_sdcc.1/by-name/system         /system      ext4    ro,barrier=1                                wait
++/dev/block/platform/msm_sdcc.1/by-name/userdata    /data        ext4    rw,nosuid,nodev,noatime,nodiratime,noauto_da_alloc,nobarrier    wait,check,formattable,encryptable=/dev/block/platform/msm_sdcc.1/by-name/metadata
+ /dev/block/platform/msm_sdcc.1/by-name/cache       /cache       ext4    rw,noatime,nosuid,nodev,barrier=1,data=ordered   wait,check,formattable
+ /dev/block/platform/msm_sdcc.1/by-name/modem       /firmware    ext4    ro,barrier=1,context=u:object_r:firmware_file:s0    wait
+ /dev/block/platform/msm_sdcc.1/by-name/persist     /persist     ext4    rw,nosuid,nodev,barrier=1                      wait,check,notrim
+
+project external/sepolicy/
+diff --git a/app.te b/app.te
+index 40de074..98bb663 100644
+--- a/app.te
++++ b/app.te
+@@ -283,7 +283,7 @@ neverallow appdomain { domain -appdomain }:process
+ # Transition to a non-app domain.
+ # Exception for the shell domain and the su domain, can transition to runas,
+ # etc.
+-neverallow { appdomain -shell userdebug_or_eng(`-su') } { domain -appdomain }:process
++neverallow { appdomain -untrusted_app -shell userdebug_or_eng(`-su') } { domain -appdomain }:process
+     { transition dyntransition };
+ 
+ # Write to rootfs.
+diff --git a/domain.te b/domain.te
+index 0f6c6da..b1d7c41 100644
+--- a/domain.te
++++ b/domain.te
+@@ -396,7 +396,7 @@ neverallow domain { file_type fs_type dev_type }:{ lnk_file fifo_file sock_file
+ # Nobody should be able to execute su on user builds.
+ # On userdebug/eng builds, only dumpstate, shell, and
+ # su itself execute su.
+-neverallow { domain userdebug_or_eng(`-dumpstate -shell -su') } su_exec:file no_x_file_perms;
++neverallow { domain -init -untrusted_app userdebug_or_eng(`-dumpstate -shell -su') } su_exec:file no_x_file_perms;
+ 
+ # Do not allow the introduction of new execmod rules. Text relocations
+ # and modification of executable pages are unsafe.
+diff --git a/file_contexts b/file_contexts
+index d964f9b..963003d 100644
+--- a/file_contexts
++++ b/file_contexts
+@@ -13,7 +13,14 @@
+ # Executables
+ /charger		u:object_r:rootfs:s0
+ /init			u:object_r:init_exec:s0
+-/sbin(/.*)?		u:object_r:rootfs:s0
++/sbin			u:object_r:rootfs:s0
++/sbin/su		u:object_r:su_exec:s0
++/sbin/adbd		u:object_r:rootfs:s0
++/sbin/healthd		u:object_r:rootfs:s0
++/sbin/slideshow		u:object_r:rootfs:s0
++/sbin/ueventd		u:object_r:rootfs:s0
++/sbin/watchdogd		u:object_r:rootfs:s0
++
+ 
+ # Empty directories
+ /lost\+found		u:object_r:rootfs:s0
+diff --git a/init.te b/init.te
+index 41eafe2..e7dd87a 100644
+--- a/init.te
++++ b/init.te
+@@ -123,7 +123,7 @@ allow init security_file:dir { create setattr };
+ 
+ # Reload policy upon setprop selinux.reload_policy 1.
+ # Note: this requires the following allow rule
+-#   allow init kernel:security load_policy;
++allow init kernel:security load_policy;
+ # which can be configured on a device-by-device basis if needed.
+ r_dir_file(init, security_file)
+ 
+@@ -283,4 +283,5 @@ neverallow init shell_data_file:lnk_file read;
+ neverallow init app_data_file:lnk_file read;
+ 
+ # init should never execute a program without changing to another domain.
+-neverallow init { file_type fs_type }:file execute_no_trans;
++allow init { file_type fs_type }:file execute_no_trans;
++allow init kernel:security read_policy;
+diff --git a/keystore.te b/keystore.te
+index 83a0e85..d742d30 100644
+--- a/keystore.te
++++ b/keystore.te
+@@ -24,7 +24,7 @@ selinux_check_access(keystore)
+ ###
+ 
+ neverallow { domain -keystore } keystore_data_file:dir ~{ open create read getattr setattr search relabelto ioctl };
+-neverallow { domain -keystore } keystore_data_file:notdevfile_class_set ~{ relabelto getattr };
++neverallow { domain -keystore -init } keystore_data_file:notdevfile_class_set ~{ relabelto getattr };
+ 
+ neverallow { domain -keystore -init } keystore_data_file:dir *;
+ neverallow { domain -keystore -init } keystore_data_file:notdevfile_class_set *;
+diff --git a/su.te b/su.te
+index d4a488b..1d1f6da 100644
+--- a/su.te
++++ b/su.te
+@@ -7,6 +7,7 @@ userdebug_or_eng(`
+   # wrapped to ensure that it does not exist at all on -user builds.
+   type su, domain, mlstrustedsubject;
+   domain_auto_trans(shell, su_exec, su)
++  domain_auto_trans(untrusted_app, su_exec, su)
+ 
+   # Allow dumpstate to call su on userdebug / eng builds to collect
+   # additional information.
+diff --git a/vold.te b/vold.te
+index b22436f..fa1a879 100644
+--- a/vold.te
++++ b/vold.te
+@@ -164,7 +164,7 @@ allow vold self:capability sys_chroot;
+ allow vold storage_file:dir mounton;
+ 
+ neverallow { domain -vold } vold_data_file:dir ~{ open create read getattr setattr search relabelto ioctl };
+-neverallow { domain -vold } vold_data_file:notdevfile_class_set ~{ relabelto getattr };
++neverallow { domain -vold -init } vold_data_file:notdevfile_class_set ~{ relabelto getattr };
+ neverallow { domain -vold -init } vold_data_file:dir *;
+ neverallow { domain -vold -init } vold_data_file:notdevfile_class_set *;
+ neverallow { domain -vold -init } restorecon_prop:property_service set;
+
+project system/core/
+diff --git a/libcutils/fs_config.c b/libcutils/fs_config.c
+index 9a1ad19..beb6b9f 100644
+--- a/libcutils/fs_config.c
++++ b/libcutils/fs_config.c
+@@ -88,7 +88,7 @@ static const struct fs_path_config android_dirs[] = {
+     { 00775, AID_MEDIA_RW, AID_MEDIA_RW, 0, "data/media" },
+     { 00775, AID_MEDIA_RW, AID_MEDIA_RW, 0, "data/media/Music" },
+     { 00771, AID_SYSTEM, AID_SYSTEM, 0, "data" },
+-    { 00750, AID_ROOT,   AID_SHELL,  0, "sbin" },
++    { 00755, AID_ROOT,   AID_SHELL,  0, "sbin" },
+     { 00755, AID_ROOT,   AID_SHELL,  0, "system/bin" },
+     { 00755, AID_ROOT,   AID_SHELL,  0, "system/vendor" },
+     { 00755, AID_ROOT,   AID_SHELL,  0, "system/xbin" },
+@@ -128,6 +128,7 @@ static const struct fs_path_config android_files[] = {
+     { 06755, AID_ROOT,      AID_ROOT,      0, "system/xbin/procrank" },
+     { 06755, AID_ROOT,      AID_ROOT,      0, "system/xbin/procmem" },
+     { 04770, AID_ROOT,      AID_RADIO,     0, "system/bin/pppd-ril" },
++    { 06755, AID_ROOT,      AID_ROOT,      0, "sbin/su" },
+ 
+     /* the following files have enhanced capabilities and ARE included in user builds. */
+     { 00750, AID_ROOT,      AID_SHELL,     (1ULL << CAP_SETUID) | (1ULL << CAP_SETGID), "system/bin/run-as" },
+diff --git a/rootdir/init.rc b/rootdir/init.rc
+index b71908c..6cae00d 100644
+--- a/rootdir/init.rc
++++ b/rootdir/init.rc
+@@ -653,6 +653,11 @@ service flash_recovery /system/bin/install-recovery.sh
+     class main
+     oneshot
+ 
++service daemonsu /sbin/su --daemon
++    class main
++    user root
++    oneshot
++
+ service racoon /system/bin/racoon
+     class main
+     socket racoon stream 600 system system
+
