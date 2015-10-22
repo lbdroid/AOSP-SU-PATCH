@@ -1,17 +1,17 @@
 Note:
 
-device tree patches are required, this patch includes such for Nexus 6.
+device tree patches are required, this patch includes such for Nexus 6,
+but it should be an easy pattern to follow for other devices.
 Missing file is the actual su binary, generated from source as follows;
-https://github.com/phhusson/Superuser/commit/de6eff7c5ef3b64dde4dc5f85cd89dadddac273a
+https://github.com/phhusson/Superuser
 ** copy the su binary into device/moto/shamu/
-
-Also note that this patch places selinux into permissive mode. This is only
-TEMPORARY until the sepolicy can be worked out further.
 
 Apply this patch to AOSP sources initialized to android-6.0.0_r1 release tag.
 Generate boot.img using "make bootimage".
 
+For bonus points, use the verity_key file from the FACTORY boot.img, and return fstab.shamu line 53 to its original state. This will RE-ENABLE dm-verity security on your system partition, and without denying you your root!
 
-In our very secure consideration, it is safer to run with selinux in permissive mode, than to grant root privileges to a binary executable that is under the
-control of a legal entity whose motives are unknown.
+I have yet to come across a compelling reason why you have to edit the contents of your system partition... your various executable binaries and libraries can all be stored on your userdata partition. build.prop edits are entirely unnecessary since you can just dump those changes into /data/local.prop.
+
+This patch *does not* re-enable the ability to re-load the sepolicy. In my opinion, a correctly crafted sepolicy will not require this. The ability to reload the selinux policy is a massive security hole on any device with root access -- any application that gets their hands on root can do *anything* to your device otherwise. Leaving the selinux policy fixed will prevent them from modifying your boot partition, and leaving dm-verity enabled will make any unauthorized changes to your system partition very very obvious so that you can take immedate action and reinstall the factory system image. Note: This characteristic makes this boot image entirely incompatible with that "binary" implementation of root access control software... at least in current (as of time of writing) incarnation.
 

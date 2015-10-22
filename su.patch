@@ -15,19 +15,6 @@ index 5b6e1e9..9c2a70f 100644
  
 
 project device/moto/shamu/
-diff --git a/BoardConfig.mk b/BoardConfig.mk
-index 4df1948..1d4e4d9 100644
---- a/BoardConfig.mk
-+++ b/BoardConfig.mk
-@@ -27,7 +27,7 @@ BOARD_KERNEL_PAGESIZE :=  2048
- BOARD_KERNEL_TAGS_OFFSET := 0x01E00000
- BOARD_RAMDISK_OFFSET     := 0x02000000
- 
--BOARD_KERNEL_CMDLINE := console=ttyHSL0,115200,n8 androidboot.console=ttyHSL0 androidboot.hardware=shamu msm_rtb.filter=0x37 ehci-hcd.park=3 utags.blkdev=/dev/block/platform/msm_sdcc.1/by-name/utags utags.backup=/dev/block/platform/msm_sdcc.1/by-name/utagsBackup coherent_pool=8M
-+BOARD_KERNEL_CMDLINE := console=ttyHSL0,115200,n8 androidboot.console=ttyHSL0 androidboot.hardware=shamu msm_rtb.filter=0x37 ehci-hcd.park=3 utags.blkdev=/dev/block/platform/msm_sdcc.1/by-name/utags utags.backup=/dev/block/platform/msm_sdcc.1/by-name/utagsBackup coherent_pool=8M androidboot.selinux=permissive
- 
- BOARD_MKBOOTIMG_ARGS := --ramdisk_offset $(BOARD_RAMDISK_OFFSET) --tags_offset $(BOARD_KERNEL_TAGS_OFFSET)
- 
 diff --git a/device.mk b/device.mk
 index 2c313ec..18b9498 100644
 --- a/device.mk
@@ -73,9 +60,18 @@ index 40de074..98bb663 100644
  
  # Write to rootfs.
 diff --git a/domain.te b/domain.te
-index 0f6c6da..b1d7c41 100644
+index 0f6c6da..5ec56ca 100644
 --- a/domain.te
 +++ b/domain.te
+@@ -309,7 +309,7 @@ neverallow { domain -init } property_data_file:file no_w_file_perms;
+ # Only recovery should be doing writes to /system
+ neverallow { domain -recovery } { system_file exec_type }:dir_file_class_set
+     { create write setattr relabelfrom append unlink link rename };
+-neverallow { domain -recovery -kernel } { system_file exec_type }:dir_file_class_set relabelto;
++neverallow { domain -init -recovery -kernel } { system_file exec_type }:dir_file_class_set relabelto;
+ 
+ # Don't allow mounting on top of /system files or directories
+ neverallow domain { system_file exec_type }:dir_file_class_set mounton;
 @@ -396,7 +396,7 @@ neverallow domain { file_type fs_type dev_type }:{ lnk_file fifo_file sock_file
  # Nobody should be able to execute su on user builds.
  # On userdebug/eng builds, only dumpstate, shell, and
@@ -86,45 +82,29 @@ index 0f6c6da..b1d7c41 100644
  # Do not allow the introduction of new execmod rules. Text relocations
  # and modification of executable pages are unsafe.
 diff --git a/file_contexts b/file_contexts
-index d964f9b..963003d 100644
+index d964f9b..9ebf993 100644
 --- a/file_contexts
 +++ b/file_contexts
-@@ -13,7 +13,14 @@
- # Executables
+@@ -14,6 +14,7 @@
  /charger		u:object_r:rootfs:s0
  /init			u:object_r:init_exec:s0
--/sbin(/.*)?		u:object_r:rootfs:s0
-+/sbin			u:object_r:rootfs:s0
+ /sbin(/.*)?		u:object_r:rootfs:s0
 +/sbin/su		u:object_r:su_exec:s0
-+/sbin/adbd		u:object_r:rootfs:s0
-+/sbin/healthd		u:object_r:rootfs:s0
-+/sbin/slideshow		u:object_r:rootfs:s0
-+/sbin/ueventd		u:object_r:rootfs:s0
-+/sbin/watchdogd		u:object_r:rootfs:s0
-+
  
  # Empty directories
  /lost\+found		u:object_r:rootfs:s0
 diff --git a/init.te b/init.te
-index 41eafe2..e7dd87a 100644
+index 41eafe2..44862d1 100644
 --- a/init.te
 +++ b/init.te
-@@ -123,7 +123,7 @@ allow init security_file:dir { create setattr };
+@@ -89,6 +89,7 @@ allow init contextmount_type:notdevfile_class_set r_file_perms;
  
- # Reload policy upon setprop selinux.reload_policy 1.
- # Note: this requires the following allow rule
--#   allow init kernel:security load_policy;
-+allow init kernel:security load_policy;
- # which can be configured on a device-by-device basis if needed.
- r_dir_file(init, security_file)
+ # restorecon /adb_keys or any other rootfs files to a more specific type.
+ allow init rootfs:file relabelfrom;
++allow init su_exec:file relabelto;
  
-@@ -283,4 +283,5 @@ neverallow init shell_data_file:lnk_file read;
- neverallow init app_data_file:lnk_file read;
- 
- # init should never execute a program without changing to another domain.
--neverallow init { file_type fs_type }:file execute_no_trans;
-+allow init { file_type fs_type }:file execute_no_trans;
-+allow init kernel:security read_policy;
+ # mkdir, symlink, write, rm/rmdir, chown/chmod, restorecon/restorecon_recursive from init.rc files.
+ # chown/chmod require open+read+setattr required for open()+fchown/fchmod().
 diff --git a/keystore.te b/keystore.te
 index 83a0e85..d742d30 100644
 --- a/keystore.te
@@ -139,17 +119,32 @@ index 83a0e85..d742d30 100644
  neverallow { domain -keystore -init } keystore_data_file:dir *;
  neverallow { domain -keystore -init } keystore_data_file:notdevfile_class_set *;
 diff --git a/su.te b/su.te
-index d4a488b..1d1f6da 100644
+index d4a488b..00df378 100644
 --- a/su.te
 +++ b/su.te
-@@ -7,6 +7,7 @@ userdebug_or_eng(`
+@@ -7,6 +7,9 @@ userdebug_or_eng(`
    # wrapped to ensure that it does not exist at all on -user builds.
    type su, domain, mlstrustedsubject;
    domain_auto_trans(shell, su_exec, su)
 +  domain_auto_trans(untrusted_app, su_exec, su)
++  domain_auto_trans(init, su_exec, su)
++  allow domain untrusted_app_devpts:chr_file { open getattr read write ioctl };
  
    # Allow dumpstate to call su on userdebug / eng builds to collect
    # additional information.
+diff --git a/untrusted_app.te b/untrusted_app.te
+index 693a13c..b0357e9 100644
+--- a/untrusted_app.te
++++ b/untrusted_app.te
+@@ -108,6 +108,8 @@ userdebug_or_eng(`
+   allow untrusted_app perfprofd_data_file:dir r_dir_perms;
+ ')
+ 
++allow untrusted_app su_exec:file execute_no_trans;
++
+ # Programs routinely attempt to scan through /system, looking
+ # for files. Suppress the denials when they occur.
+ dontaudit untrusted_app exec_type:file getattr;
 diff --git a/vold.te b/vold.te
 index b22436f..fa1a879 100644
 --- a/vold.te
@@ -165,6 +160,18 @@ index b22436f..fa1a879 100644
  neverallow { domain -vold -init } restorecon_prop:property_service set;
 
 project system/core/
+diff --git a/init/init.cpp b/init/init.cpp
+index 93fe944..9810989 100644
+--- a/init/init.cpp
++++ b/init/init.cpp
+@@ -1065,6 +1065,7 @@ int main(int argc, char** argv) {
+     restorecon("/dev/socket");
+     restorecon("/dev/__properties__");
+     restorecon_recursive("/sys");
++    restorecon_recursive("/sbin");
+ 
+     epoll_fd = epoll_create1(EPOLL_CLOEXEC);
+     if (epoll_fd == -1) {
 diff --git a/libcutils/fs_config.c b/libcutils/fs_config.c
 index 9a1ad19..beb6b9f 100644
 --- a/libcutils/fs_config.c
@@ -187,19 +194,19 @@ index 9a1ad19..beb6b9f 100644
      /* the following files have enhanced capabilities and ARE included in user builds. */
      { 00750, AID_ROOT,      AID_SHELL,     (1ULL << CAP_SETUID) | (1ULL << CAP_SETGID), "system/bin/run-as" },
 diff --git a/rootdir/init.rc b/rootdir/init.rc
-index b71908c..6cae00d 100644
+index b71908c..cadc251 100644
 --- a/rootdir/init.rc
 +++ b/rootdir/init.rc
-@@ -653,6 +653,11 @@ service flash_recovery /system/bin/install-recovery.sh
+@@ -653,6 +653,12 @@ service flash_recovery /system/bin/install-recovery.sh
      class main
      oneshot
  
 +service daemonsu /sbin/su --daemon
 +    class main
 +    user root
++    seclabel u:r:su:s0
 +    oneshot
 +
  service racoon /system/bin/racoon
      class main
      socket racoon stream 600 system system
-
