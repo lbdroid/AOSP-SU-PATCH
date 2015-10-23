@@ -59,6 +59,18 @@ index 40de074..98bb663 100644
      { transition dyntransition };
  
  # Write to rootfs.
+diff --git a/device.te b/device.te
+index b2f4f1d..55d17df 100644
+--- a/device.te
++++ b/device.te
+@@ -35,6 +35,7 @@ type random_device, dev_type, mlstrustedobject;
+ type sensors_device, dev_type;
+ type serial_device, dev_type;
+ type socket_device, dev_type;
++type su_device, dev_type, mlstrustedobject;
+ type owntty_device, dev_type, mlstrustedobject;
+ type tty_device, dev_type;
+ type urandom_device, dev_type, mlstrustedobject;
 diff --git a/domain.te b/domain.te
 index 0f6c6da..5ec56ca 100644
 --- a/domain.te
@@ -133,10 +145,21 @@ index d4a488b..00df378 100644
    # Allow dumpstate to call su on userdebug / eng builds to collect
    # additional information.
 diff --git a/untrusted_app.te b/untrusted_app.te
-index 693a13c..b0357e9 100644
+index 693a13c..1eba40d 100644
 --- a/untrusted_app.te
 +++ b/untrusted_app.te
-@@ -108,6 +108,8 @@ userdebug_or_eng(`
+@@ -100,6 +100,10 @@ allow untrusted_app { apk_tmp_file apk_private_tmp_file }:file r_file_perms;
+ # only allow unprivileged socket ioctl commands
+ allow untrusted_app self:{ rawip_socket tcp_socket udp_socket } unpriv_sock_ioctls;
+ 
++allow untrusted_app su_device:sock_file rw_file_perms;
++allow untrusted_app su_device:dir r_dir_perms;
++file_type_auto_trans(su, device, su_device)
++
+ # Allow GMS core to access perfprofd output, which is stored
+ # in /data/misc/perfprofd/. GMS core will need to list all
+ # data stored in that directory to process them one by one.
+@@ -108,6 +112,8 @@ userdebug_or_eng(`
    allow untrusted_app perfprofd_data_file:dir r_dir_perms;
  ')
  
