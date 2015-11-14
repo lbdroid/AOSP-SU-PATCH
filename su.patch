@@ -935,7 +935,6 @@ index b71908c..cadc251 100644
 +    class main
 +    user root
 +    seclabel u:r:su:s0
-+    oneshot
 +
  service racoon /system/bin/racoon
      class main
