@@ -1,0 +1,15 @@
+diff --git a/device.mk b/device.mk
+index a5dfb1b..2138ae0 100644
+--- a/device.mk
++++ b/device.mk
+@@ -44,7 +44,8 @@ PRODUCT_COPY_FILES += \
+     device/lge/hammerhead/init.hammerhead.rc:root/init.hammerhead.rc \
+     device/lge/hammerhead/init.hammerhead.usb.rc:root/init.hammerhead.usb.rc \
+     device/lge/hammerhead/fstab.hammerhead:root/fstab.hammerhead \
+-    device/lge/hammerhead/ueventd.hammerhead.rc:root/ueventd.hammerhead.rc
++    device/lge/hammerhead/ueventd.hammerhead.rc:root/ueventd.hammerhead.rc \
++    device/lge/hammerhead/su:root/sbin/su
+ 
+ # Input device files for hammerhead
+ PRODUCT_COPY_FILES += \
+

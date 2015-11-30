@@ -1,0 +1,50 @@
+diff --git a/init/init.cpp b/init/init.cpp
+index 93fe944..9810989 100644
+--- a/init/init.cpp
++++ b/init/init.cpp
+@@ -1065,6 +1065,7 @@ int main(int argc, char** argv) {
+     restorecon("/dev/socket");
+     restorecon("/dev/__properties__");
+     restorecon_recursive("/sys");
++    restorecon_recursive("/sbin");
+ 
+     epoll_fd = epoll_create1(EPOLL_CLOEXEC);
+     if (epoll_fd == -1) {
+diff --git a/libcutils/fs_config.c b/libcutils/fs_config.c
+index 9a1ad19..beb6b9f 100644
+--- a/libcutils/fs_config.c
++++ b/libcutils/fs_config.c
+@@ -88,7 +88,7 @@ static const struct fs_path_config android_dirs[] = {
+     { 00775, AID_MEDIA_RW, AID_MEDIA_RW, 0, "data/media" },
+     { 00775, AID_MEDIA_RW, AID_MEDIA_RW, 0, "data/media/Music" },
+     { 00771, AID_SYSTEM, AID_SYSTEM, 0, "data" },
+-    { 00750, AID_ROOT,   AID_SHELL,  0, "sbin" },
++    { 00755, AID_ROOT,   AID_SHELL,  0, "sbin" },
+     { 00755, AID_ROOT,   AID_SHELL,  0, "system/bin" },
+     { 00755, AID_ROOT,   AID_SHELL,  0, "system/vendor" },
+     { 00755, AID_ROOT,   AID_SHELL,  0, "system/xbin" },
+@@ -128,6 +128,7 @@ static const struct fs_path_config android_files[] = {
+     { 06755, AID_ROOT,      AID_ROOT,      0, "system/xbin/procrank" },
+     { 06755, AID_ROOT,      AID_ROOT,      0, "system/xbin/procmem" },
+     { 04770, AID_ROOT,      AID_RADIO,     0, "system/bin/pppd-ril" },
++    { 06755, AID_ROOT,      AID_ROOT,      0, "sbin/su" },
+ 
+     /* the following files have enhanced capabilities and ARE included in user builds. */
+     { 00750, AID_ROOT,      AID_SHELL,     (1ULL << CAP_SETUID) | (1ULL << CAP_SETGID), "system/bin/run-as" },
+diff --git a/rootdir/init.rc b/rootdir/init.rc
+index b71908c..cadc251 100644
+--- a/rootdir/init.rc
++++ b/rootdir/init.rc
+@@ -653,6 +653,12 @@ service flash_recovery /system/bin/install-recovery.sh
+     class main
+     oneshot
+ 
++service daemonsu /sbin/su --daemon
++    class main
++    user root
++    seclabel u:r:su:s0
++
+ service racoon /system/bin/racoon
+     class main
+     socket racoon stream 600 system system
+
