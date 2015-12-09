@@ -32,10 +32,10 @@ index 9a1ad19..beb6b9f 100644
      /* the following files have enhanced capabilities and ARE included in user builds. */
      { 00750, AID_ROOT,      AID_SHELL,     (1ULL << CAP_SETUID) | (1ULL << CAP_SETGID), "system/bin/run-as" },
 diff --git a/rootdir/init.rc b/rootdir/init.rc
-index b71908c..cadc251 100644
+index 317207c..71abd29 100644
 --- a/rootdir/init.rc
 +++ b/rootdir/init.rc
-@@ -653,6 +653,12 @@ service flash_recovery /system/bin/install-recovery.sh
+@@ -692,6 +692,11 @@ service flash_recovery /system/bin/install-recovery.sh
      class main
      oneshot
  
@@ -47,4 +47,3 @@ index b71908c..cadc251 100644
  service racoon /system/bin/racoon
      class main
      socket racoon stream 600 system system
-
