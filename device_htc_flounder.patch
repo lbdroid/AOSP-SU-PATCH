@@ -1,5 +1,5 @@
 diff --git a/device.mk b/device.mk
-index 5511410..fdcb574 100644
+index 6c10fb0..44723cc 100644
 --- a/device.mk
 +++ b/device.mk
 @@ -49,7 +49,8 @@ PRODUCT_COPY_FILES := \
@@ -13,7 +13,7 @@ index 5511410..fdcb574 100644
  # Copy flounder files as flounder64 so that ${ro.hardware} can find them
  PRODUCT_COPY_FILES += \
 diff --git a/fstab.flounder b/fstab.flounder
-index 54f948f..fb46a34 100644
+index 518becd..0459698 100644
 --- a/fstab.flounder
 +++ b/fstab.flounder
 @@ -3,11 +3,11 @@
@@ -24,12 +24,11 @@ index 54f948f..fb46a34 100644
 -/dev/block/platform/sdhci-tegra.3/by-name/VNR   /vendor             ext4      ro                                                    wait,verify=/dev/block/platform/sdhci-tegra.3/by-name/MD1
 +/dev/block/platform/sdhci-tegra.3/by-name/APP   /system             ext4      ro                                                    wait
 +/dev/block/platform/sdhci-tegra.3/by-name/VNR   /vendor             ext4      ro                                                    wait
- /dev/block/platform/sdhci-tegra.3/by-name/CAC   /cache              ext4      noatime,nosuid,nodev,nomblk_io_submit,errors=panic    wait,check
--/dev/block/platform/sdhci-tegra.3/by-name/UDA   /data               f2fs      noatime,nosuid,nodev,errors=recover    wait,check,forceencrypt=/dev/block/platform/sdhci-tegra.3/by-name/MD1
+ /dev/block/platform/sdhci-tegra.3/by-name/CAC   /cache              ext4      noatime,nosuid,nodev,nomblk_io_submit,discard,errors=panic    wait,check
+-/dev/block/platform/sdhci-tegra.3/by-name/UDA   /data               f2fs      noatime,discard,nosuid,nodev,errors=panic    wait,check,forceencrypt=/dev/block/platform/sdhci-tegra.3/by-name/MD1
 -/dev/block/platform/sdhci-tegra.3/by-name/UDA   /data               ext4      noatime,nosuid,nodev,nomblk_io_submit,errors=panic    wait,check,forceencrypt=/dev/block/platform/sdhci-tegra.3/by-name/MD1
-+/dev/block/platform/sdhci-tegra.3/by-name/UDA   /data               f2fs      noatime,nosuid,nodev,errors=recover    wait,check,encryptable=/dev/block/platform/sdhci-tegra.3/by-name/MD1
++/dev/block/platform/sdhci-tegra.3/by-name/UDA   /data               f2fs      noatime,discard,nosuid,nodev,errors=panic    wait,check,encryptable=/dev/block/platform/sdhci-tegra.3/by-name/MD1
 +/dev/block/platform/sdhci-tegra.3/by-name/UDA   /data               ext4      noatime,nosuid,nodev,nomblk_io_submit,errors=panic    wait,check,encryptable=/dev/block/platform/sdhci-tegra.3/by-name/MD1
  /dev/block/platform/sdhci-tegra.3/by-name/LNX   /boot               emmc      defaults                                              defaults
  /dev/block/platform/sdhci-tegra.3/by-name/SOS   /recovery           emmc      defaults                                              defaults
  /dev/block/platform/sdhci-tegra.3/by-name/MSC   /misc               emmc      defaults                                              defaults
-

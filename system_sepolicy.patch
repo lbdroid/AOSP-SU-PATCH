@@ -1,8 +1,8 @@
 diff --git a/app.te b/app.te
-index 5ba0e74..3846cc3 100644
+index f2adf37..8f2b0f0 100644
 --- a/app.te
 +++ b/app.te
-@@ -257,14 +257,14 @@ allow appdomain cache_file:dir getattr;
+@@ -274,14 +274,14 @@ allow appdomain cache_file:dir getattr;
  
  # Superuser capabilities.
  # bluetooth requires net_admin and wake_alarm.
@@ -19,9 +19,9 @@ index 5ba0e74..3846cc3 100644
 -neverallow appdomain {
 +neverallow { appdomain -su } {
      audio_device
-     video_device
+     camera_device
      dm_device
-@@ -276,14 +276,14 @@ neverallow appdomain {
+@@ -294,14 +294,14 @@ neverallow appdomain {
  # Note: Try expanding list of app domains in the future.
  neverallow { untrusted_app isolated_app shell } graphics_device:chr_file { read write };
  
@@ -40,7 +40,7 @@ index 5ba0e74..3846cc3 100644
      domain:{
          netlink_firewall_socket
          netlink_tcpdiag_socket
-@@ -297,29 +297,29 @@ neverallow appdomain
+@@ -315,29 +315,29 @@ neverallow appdomain
  # These messages are broadcast messages from the kernel to userspace.
  # Do not allow the writing of netlink messages, which has been a source
  # of rooting vulns in the past.
@@ -80,7 +80,7 @@ index 5ba0e74..3846cc3 100644
      { sigkill sigstop signal };
  
  # Transition to a non-app domain.
-@@ -329,87 +329,87 @@ neverallow { appdomain -shell userdebug_or_eng(`-su') } { domain -appdomain }:pr
+@@ -347,87 +347,87 @@ neverallow { appdomain -shell userdebug_or_eng(`-su') } { domain -appdomain }:pr
      { transition dyntransition };
  
  # Write to rootfs.
@@ -193,6 +193,14 @@ index 5ba0e74..3846cc3 100644
    apk_data_file
    cache_file
    cache_recovery_file
+@@ -439,5 +439,5 @@ neverallow appdomain {
+ }:lnk_file no_w_file_perms;
+ 
+ # Foreign dex profiles are just markers. Prevent apps to do anything but touch them.
+-neverallow appdomain user_profile_foreign_dex_data_file:file rw_file_perms;
+-neverallow appdomain user_profile_foreign_dex_data_file:dir { open getattr read ioctl remove_name };
++neverallow { appdomain -su } user_profile_foreign_dex_data_file:file rw_file_perms;
++neverallow { appdomain -su } user_profile_foreign_dex_data_file:dir { open getattr read ioctl remove_name };
 diff --git a/blkid.te b/blkid.te
 index 43bc944..df791e8 100644
 --- a/blkid.te
@@ -220,10 +228,10 @@ index da3bdac..7b6e5af 100644
 +neverallow { domain -su } blkid_untrusted:process dyntransition;
  neverallow blkid_untrusted { file_type fs_type -blkid_exec -shell_exec }:file entrypoint;
 diff --git a/device.te b/device.te
-index 0fc90c5..6a83853 100644
+index 06006b2..8bc6919 100644
 --- a/device.te
 +++ b/device.te
-@@ -34,6 +34,7 @@ type random_device, dev_type, mlstrustedobject;
+@@ -35,6 +35,7 @@ type random_device, dev_type, mlstrustedobject;
  type sensors_device, dev_type;
  type serial_device, dev_type;
  type socket_device, dev_type;
@@ -232,10 +240,10 @@ index 0fc90c5..6a83853 100644
  type tty_device, dev_type;
  type urandom_device, dev_type, mlstrustedobject;
 diff --git a/domain.te b/domain.te
-index 9d377e5..d42e6c4 100644
+index 1ac33f1..7714b20 100644
 --- a/domain.te
 +++ b/domain.te
-@@ -141,12 +141,13 @@ allow domain fs_type:dir getattr;
+@@ -148,12 +148,13 @@ allow domain fs_type:dir getattr;
  ###
  
  # Do not allow any domain other than init or recovery to create unlabeled files.
@@ -250,7 +258,7 @@ index 9d377e5..d42e6c4 100644
    -debuggerd
    -vold
    -dumpstate
-@@ -157,6 +158,7 @@ neverallow {
+@@ -164,6 +165,7 @@ neverallow {
  # Limit device node creation to these whitelisted domains.
  neverallow {
    domain
@@ -258,12 +266,12 @@ index 9d377e5..d42e6c4 100644
    -kernel
    -init
    -ueventd
-@@ -164,39 +166,39 @@ neverallow {
- } self:capability mknod;
- 
- # Limit raw I/O to these whitelisted domains.
--neverallow { domain -kernel -init -recovery -ueventd -watchdogd -healthd -vold -uncrypt -tee } self:capability sys_rawio;
-+neverallow { domain -kernel -init -recovery -ueventd -watchdogd -healthd -vold -uncrypt -tee -su } self:capability sys_rawio;
+@@ -181,39 +183,40 @@ neverallow {
+   -healthd
+   -uncrypt
+   -tee
++  -su
+ } self:capability sys_rawio;
  
  # No process can map low memory (< CONFIG_LSM_MMAP_MIN_ADDR).
 -neverallow * self:memprotect mmap_zero;
@@ -309,16 +317,16 @@ index 9d377e5..d42e6c4 100644
  
  # Only init prior to switching context should be able to set enforcing mode.
  # init starts in kernel domain and switches to init domain via setcon in
-@@ -214,41 +216,41 @@ neverallow * kernel:security setbool;
+@@ -231,41 +234,41 @@ neverallow * kernel:security setbool;
  neverallow { domain -init } kernel:security setsecparam;
  
  # Only init, ueventd and system_server should be able to access HW RNG
 -neverallow { domain -init -system_server -ueventd } hw_random_device:chr_file *;
 +neverallow { domain -init -system_server -ueventd -su } hw_random_device:chr_file *;
  
- # Ensure that all entrypoint executables are in exec_type.
--neverallow * { file_type -exec_type }:file entrypoint;
-+neverallow { domain -su } { file_type -exec_type }:file entrypoint;
+ # Ensure that all entrypoint executables are in exec_type or postinstall_file.
+-neverallow * { file_type -exec_type -postinstall_file }:file entrypoint;
++neverallow { domain -su } { file_type -exec_type -postinstall_file }:file entrypoint;
  
  # Ensure that nothing in userspace can access /dev/mem or /dev/kmem
 -neverallow { domain -kernel -ueventd -init } kmem_device:chr_file *;
@@ -357,12 +365,12 @@ index 9d377e5..d42e6c4 100644
  # Limit what domains can mount filesystems or change their mount flags.
  # sdcard_type / vfat is exempt as a larger set of domains need
  # this capability, including device-specific domains.
--neverallow { domain -kernel -init -recovery -vold -zygote } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
-+neverallow { domain -kernel -init -recovery -vold -zygote -su } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
+-neverallow { domain -kernel -init -recovery -vold -zygote -update_engine } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
++neverallow { domain -kernel -init -recovery -vold -zygote -update_engine -su } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
  
  #
  # Assert that, to the extent possible, we're not loading executable content from
-@@ -268,9 +270,10 @@ neverallow {
+@@ -285,9 +288,10 @@ neverallow {
      domain
      -appdomain # for oemfs
      -recovery # for /tmp/update_binary in tmpfs
@@ -374,7 +382,7 @@ index 9d377e5..d42e6c4 100644
  
  # Protect most domains from executing arbitrary content from /data.
  neverallow {
-@@ -278,6 +281,7 @@ neverallow {
+@@ -295,6 +299,7 @@ neverallow {
    -untrusted_app
    -priv_app
    -shell
@@ -382,25 +390,31 @@ index 9d377e5..d42e6c4 100644
  } {
    data_file_type
    -dalvikcache_data_file
-@@ -285,32 +289,32 @@ neverallow {
+@@ -302,35 +307,35 @@ neverallow {
    -apk_data_file
  }:file no_x_file_perms;
  
 -neverallow { domain userdebug_or_eng(`-shell') } nativetest_data_file:file no_x_file_perms;
 +neverallow { domain userdebug_or_eng(`-shell') -su } nativetest_data_file:file no_x_file_perms;
  
- # Only the init property service should write to /data/property.
+ # Only the init property service should write to /data/property and /dev/__properties__
 -neverallow { domain -init } property_data_file:dir no_w_dir_perms;
--neverallow { domain -init } property_data_file:file no_w_file_perms;
+-neverallow { domain -init } property_data_file:file { no_w_file_perms no_x_file_perms };
+-neverallow { domain -init } property_type:file { no_w_file_perms no_x_file_perms };
+-neverallow { domain -init } properties_device:file { no_w_file_perms no_x_file_perms };
+-neverallow { domain -init } properties_serial:file { no_w_file_perms no_x_file_perms };
 +neverallow { domain -init -su } property_data_file:dir no_w_dir_perms;
-+neverallow { domain -init -su } property_data_file:file no_w_file_perms;
++neverallow { domain -init -su } property_data_file:file { no_w_file_perms no_x_file_perms };
++neverallow { domain -init -su } property_type:file { no_w_file_perms no_x_file_perms };
++neverallow { domain -init -su } properties_device:file { no_w_file_perms no_x_file_perms };
++neverallow { domain -init -su } properties_serial:file { no_w_file_perms no_x_file_perms };
  
  # Only recovery should be doing writes to /system
 -neverallow { domain -recovery } { system_file exec_type }:dir_file_class_set
 +neverallow { domain -recovery -su } { system_file exec_type }:dir_file_class_set
      { create write setattr relabelfrom append unlink link rename };
 -neverallow { domain -recovery -kernel } { system_file exec_type }:dir_file_class_set relabelto;
-+neverallow { domain -recovery -kernel -su -init } { system_file exec_type }:dir_file_class_set relabelto;
++#neverallow { domain -recovery -kernel -su -su_exec } { system_file exec_type }:dir_file_class_set relabelto;
  
  # Don't allow mounting on top of /system files or directories
 -neverallow * exec_type:dir_file_class_set mounton;
@@ -425,7 +439,7 @@ index 9d377e5..d42e6c4 100644
      { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Do not allow service_manager add for default_android_service.
-@@ -318,27 +322,28 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -338,20 +343,20 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
@@ -450,6 +464,15 @@ index 9d377e5..d42e6c4 100644
 -neverallow { domain -install_recovery -recovery } recovery_block_device:blk_file write;
 +neverallow { domain -install_recovery -recovery -su } recovery_block_device:blk_file write;
  
+ # No domains other than a select few can access the misc_block_device. This
+ # block device is reserved for OTA use.
+@@ -366,14 +371,16 @@ neverallow {
+   -vold
+   -recovery
+   -ueventd
++  -su
+ } misc_block_device:blk_file { append link relabelfrom rename write open read ioctl lock };
+ 
  # Only servicemanager should be able to register with binder as the context manager
 -neverallow { domain -servicemanager } *:binder set_context_mgr;
 +neverallow { domain -servicemanager -su } *:binder set_context_mgr;
@@ -461,15 +484,15 @@ index 9d377e5..d42e6c4 100644
    -init # TODO: limit init to relabelfrom for files
    -zygote
    -installd
-@@ -348,6 +353,7 @@ neverallow {
+@@ -383,6 +390,7 @@ neverallow {
  
  neverallow {
    domain
 +  -su
    -init
    -installd
-   -otapreopt
-@@ -356,8 +362,8 @@ neverallow {
+   -postinstall_dexopt
+@@ -391,8 +399,8 @@ neverallow {
  } dalvikcache_data_file:dir no_w_dir_perms;
  
  # Only system_server should be able to send commands via the zygote socket
@@ -480,7 +503,7 @@ index 9d377e5..d42e6c4 100644
  
  # Android does not support System V IPCs.
  #
-@@ -375,23 +381,23 @@ neverallow { domain -system_server } zygote_socket:sock_file write;
+@@ -410,23 +418,23 @@ neverallow { domain -system_server } zygote_socket:sock_file write;
  # that, even assuming only non-buggy and non-malicious code, it is very likely
  # that over time, the kernel global tables used to implement SysV IPCs will fill
  # up.
@@ -508,7 +531,7 @@ index 9d377e5..d42e6c4 100644
    file_type
    -system_data_file
    -apk_data_file
-@@ -402,20 +408,20 @@ neverallow * {
+@@ -437,20 +445,20 @@ neverallow * {
  # Do not allow making the stack or heap executable.
  # We would also like to minimize execmem but it seems to be
  # required by some device-specific service domains.
@@ -532,7 +555,7 @@ index 9d377e5..d42e6c4 100644
  neverallow ~domain domain:process { transition dyntransition };
  
  #
-@@ -428,6 +434,7 @@ neverallow ~domain domain:process { transition dyntransition };
+@@ -463,6 +471,7 @@ neverallow ~domain domain:process { transition dyntransition };
  #
  neverallow {
    domain
@@ -540,7 +563,7 @@ index 9d377e5..d42e6c4 100644
    -system_server
    -system_app
    -init
-@@ -444,6 +451,7 @@ neverallow installd system_data_file:file ~{ r_file_perms relabelfrom unlink };
+@@ -479,6 +488,7 @@ neverallow installd system_data_file:file ~{ r_file_perms relabelfrom unlink };
  #
  neverallow {
    domain
@@ -548,7 +571,7 @@ index 9d377e5..d42e6c4 100644
    -adbd
    -init
    -runas
-@@ -454,6 +462,7 @@ neverallow {
+@@ -489,6 +499,7 @@ neverallow {
  # This is to prevent malicious symlink attacks.
  neverallow {
    domain
@@ -556,7 +579,7 @@ index 9d377e5..d42e6c4 100644
    -appdomain
    -installd
    -uncrypt  # TODO: see if we can remove
-@@ -461,6 +470,7 @@ neverallow {
+@@ -496,6 +507,7 @@ neverallow {
  
  neverallow {
    domain
@@ -564,7 +587,7 @@ index 9d377e5..d42e6c4 100644
    -shell
    userdebug_or_eng(`-uncrypt')
    -installd
-@@ -478,6 +488,7 @@ neverallow {
+@@ -513,6 +525,7 @@ neverallow {
    -init
    -shell
    -vold
@@ -572,7 +595,7 @@ index 9d377e5..d42e6c4 100644
  } shell_data_file:dir no_w_dir_perms;
  
  neverallow {
-@@ -503,13 +514,13 @@ neverallow {
+@@ -538,7 +551,7 @@ neverallow {
  } shell_data_file:file open;
  
  # servicemanager is the only process which handles list request
@@ -581,14 +604,7 @@ index 9d377e5..d42e6c4 100644
  
  # only service_manager_types can be added to service_manager
  neverallow * ~service_manager_type:service_manager { add find };
- 
- # logpersist is only allowed on userdebug/eng builds
--neverallow { domain userdebug_or_eng(`-logd -shell') } misc_logd_file:file rw_file_perms;
-+neverallow { domain userdebug_or_eng(`-logd -shell -su') } misc_logd_file:file rw_file_perms;
- 
- # Prevent assigning non property types to properties
- neverallow * ~property_type:property_service set;
-@@ -525,13 +536,13 @@ neverallow * ~property_type:property_service set;
+@@ -557,13 +570,13 @@ neverallow * ~property_type:property_service set;
  # init_daemon_domain(mydaemon)
  # $ grep mydaemon file_contexts
  # /system/bin/mydaemon -- u:object_r:mydaemon_exec:s0
@@ -604,7 +620,7 @@ index 9d377e5..d42e6c4 100644
  
  neverallow {
    domain
-@@ -539,6 +550,7 @@ neverallow {
+@@ -571,6 +584,7 @@ neverallow {
    -recovery
    -sdcardd
    -vold
@@ -612,7 +628,7 @@ index 9d377e5..d42e6c4 100644
  } fuse_device:chr_file open;
  neverallow {
    domain
-@@ -550,6 +562,7 @@ neverallow {
+@@ -582,6 +596,7 @@ neverallow {
    -system_server
    -ueventd
    -vold
@@ -620,14 +636,20 @@ index 9d377e5..d42e6c4 100644
  } fuse_device:chr_file *;
  
  # Profiles contain untrusted data and profman parses that. We should only run
-@@ -558,4 +571,5 @@ neverallow {
+@@ -590,9 +605,10 @@ neverallow {
    domain
    -installd
    -profman
 +  -su
  } profman_exec:file no_x_file_perms;
+ 
+ # Enforce restrictions on kernel module origin.
+ # Do not allow kernel module loading except from system,
+ # vendor, and boot partitions.
+-neverallow * ~{ system_file rootfs }:system module_load;
++neverallow { domain -su } ~{ system_file rootfs }:system module_load;
 diff --git a/file_contexts b/file_contexts
-index e94c95e..1c659b0 100644
+index 0192ea3..4414eae 100644
 --- a/file_contexts
 +++ b/file_contexts
 @@ -17,6 +17,7 @@
@@ -665,28 +687,28 @@ index 00faa20..28a7387 100644
 +neverallow { domain -su } fsck_untrusted:process dyntransition;
  neverallow fsck_untrusted { file_type fs_type -fsck_exec }:file entrypoint;
 diff --git a/gatekeeperd.te b/gatekeeperd.te
-index 051daca..a5851c9 100644
+index e394af3..51dbb44 100644
 --- a/gatekeeperd.te
 +++ b/gatekeeperd.te
 @@ -27,4 +27,4 @@ allow gatekeeperd gatekeeper_data_file:file create_file_perms;
  # For hardware properties retrieval
- allow gatekeeperd hardwareproperties_service:service_manager find;
+ allow gatekeeperd hardware_properties_service:service_manager find;
  
 -neverallow { domain -gatekeeperd } gatekeeper_service:service_manager add;
 +neverallow { domain -su -gatekeeperd } gatekeeper_service:service_manager add;
 diff --git a/init.te b/init.te
-index 1baeeee..859c2ea 100644
+index 6197c39..c01d0a6 100644
 --- a/init.te
 +++ b/init.te
-@@ -90,6 +90,7 @@ allow init contextmount_type:notdevfile_class_set r_file_perms;
- 
- # restorecon /adb_keys or any other rootfs files to a more specific type.
- allow init rootfs:file relabelfrom;
-+allow init su_exec:file relabelto;
+@@ -95,6 +95,7 @@ allow init contextmount_type:notdevfile_class_set r_file_perms;
+ # restorecon /adb_keys or any other rootfs files and directories to a more
+ # specific type.
+ allow init rootfs:{ dir file } relabelfrom;
++allow init su_exec:{ dir file } relabelto;
  
  # mkdir, symlink, write, rm/rmdir, chown/chmod, restorecon/restorecon_recursive from init.rc files.
  # chown/chmod require open+read+setattr required for open()+fchown/fchmod().
-@@ -282,8 +283,8 @@ unix_socket_connect(init, vold, vold)
+@@ -295,8 +296,8 @@ allow init misc_block_device:blk_file w_file_perms;
  
  # The init domain is only entered via setcon from the kernel domain,
  # never via an exec-based transition.
@@ -698,10 +720,10 @@ index 1baeeee..859c2ea 100644
  
  # Never read/follow symlinks created by shell or untrusted apps.
 diff --git a/kernel.te b/kernel.te
-index 20b0c0a..6426bbd 100644
+index 1ca5673..ef21c22 100644
 --- a/kernel.te
 +++ b/kernel.te
-@@ -71,7 +71,7 @@ domain_auto_trans(kernel, init_exec, init)
+@@ -77,7 +77,7 @@ allow kernel media_rw_data_file:file create_file_perms;
  
  # The initial task starts in the kernel domain (assigned via
  # initial_sid_contexts), but nothing ever transitions to it.
@@ -731,15 +753,62 @@ index 9dca43c..1b82b53 100644
 -neverallow * keystore:process ptrace;
 +neverallow { domain -su } keystore:process ptrace;
 diff --git a/lmkd.te b/lmkd.te
-index 7920aee..050975e 100644
+index 570cbca..196dcbb 100644
 --- a/lmkd.te
 +++ b/lmkd.te
-@@ -36,4 +36,4 @@ allow lmkd self:capability sys_nice;
+@@ -37,4 +37,4 @@ allow lmkd self:capability sys_nice;
  ### neverallow rules
  
  # never honor LD_PRELOAD
 -neverallow * lmkd:process noatsecure;
 +neverallow { domain -su } lmkd:process noatsecure;
+diff --git a/logd.te b/logd.te
+index 97bbd8b..386072e 100644
+--- a/logd.te
++++ b/logd.te
+@@ -62,6 +62,6 @@ neverallow logd { app_data_file system_data_file }:dir_file_class_set write;
+ neverallow logd { file_type -logd_tmpfs userdebug_or_eng(` -misc_logd_file -coredump_file ') }:file { create write append };
+ 
+ # logpersist is only allowed on userdebug/eng builds
+-neverallow { domain userdebug_or_eng(`-logd -shell -dumpstate') } misc_logd_file:file no_rw_file_perms;
+-neverallow { domain userdebug_or_eng(`-logd') } misc_logd_file:dir { add_name link relabelfrom remove_name rename reparent rmdir write };
+-neverallow { domain -init } misc_logd_file:dir create;
++neverallow { domain userdebug_or_eng(`-logd -shell -dumpstate') -su } misc_logd_file:file no_rw_file_perms;
++neverallow { domain userdebug_or_eng(`-logd') -su } misc_logd_file:dir { add_name link relabelfrom remove_name rename reparent rmdir write };
++neverallow { domain -init -su } misc_logd_file:dir create;
+diff --git a/netd.te b/netd.te
+index 9b44e4b..5d71e44 100644
+--- a/netd.te
++++ b/netd.te
+@@ -95,6 +95,6 @@ neverallow netd system_file:dir_file_class_set write;
+ neverallow netd { app_data_file system_data_file }:dir_file_class_set write;
+ 
+ # only system_server and dumpstate may interact with netd over binder
+-neverallow { domain -system_server -dumpstate } netd_service:service_manager find;
+-neverallow { domain -system_server -dumpstate } netd:binder call;
++neverallow { domain -system_server -dumpstate -su } netd_service:service_manager find;
++neverallow { domain -system_server -dumpstate -su } netd:binder call;
+ neverallow netd { domain -system_server -servicemanager userdebug_or_eng(`-su') }:binder call;
+diff --git a/postinstall.te b/postinstall.te
+index 5c261ef..9f7d81e 100644
+--- a/postinstall.te
++++ b/postinstall.te
+@@ -21,7 +21,7 @@ allow postinstall toolbox_exec:file rx_file_perms;
+ 
+ # No domain other than update_engine should transition to postinstall, as it is
+ # only meant to run during the update.
+-neverallow { domain -update_engine } postinstall:process { transition dyntransition };
++neverallow { domain -update_engine -su } postinstall:process { transition dyntransition };
+ 
+ #
+ # For OTA dexopt.
+@@ -32,4 +32,4 @@ binder_use(postinstall)
+ binder_call(postinstall, system_server)
+ 
+ # Need to talk to the otadexopt service.
+-allow postinstall otadexopt_service:service_manager find;
+\ No newline at end of file
++allow postinstall otadexopt_service:service_manager find;
 diff --git a/sgdisk.te b/sgdisk.te
 index 43636d4..f96ecbf 100644
 --- a/sgdisk.te
@@ -858,10 +927,10 @@ index 55de7eb..033fcd4 100644
 +neverallow { domain -su } toolbox:process dyntransition;
  neverallow toolbox { file_type fs_type -toolbox_exec}:file entrypoint;
 diff --git a/untrusted_app.te b/untrusted_app.te
-index 8672f58..dc26704 100644
+index 6bc6843..d219793 100644
 --- a/untrusted_app.te
 +++ b/untrusted_app.te
-@@ -79,6 +79,10 @@ allow untrusted_app radio_service:service_manager find;
+@@ -78,6 +78,10 @@ allow untrusted_app radio_service:service_manager find;
  allow untrusted_app surfaceflinger_service:service_manager find;
  allow untrusted_app app_api_service:service_manager find;
  
@@ -872,7 +941,7 @@ index 8672f58..dc26704 100644
  # Allow GMS core to access perfprofd output, which is stored
  # in /data/misc/perfprofd/. GMS core will need to list all
  # data stored in that directory to process them one by one.
-@@ -90,6 +94,8 @@ userdebug_or_eng(`
+@@ -89,6 +93,8 @@ userdebug_or_eng(`
  # gdbserver for ndk-gdb ptrace attaches to app process.
  allow untrusted_app self:process ptrace;
  
@@ -882,12 +951,12 @@ index 8672f58..dc26704 100644
  # for files. Suppress the denials when they occur.
  dontaudit untrusted_app exec_type:file getattr;
 diff --git a/vold.te b/vold.te
-index fb3673c..b281442 100644
+index 8cea0c3..dc44bbe 100644
 --- a/vold.te
 +++ b/vold.te
-@@ -188,10 +188,10 @@ allow vold toolbox_exec:file rx_file_perms;
- # Prepare profile dir for users.
- allow vold user_profile_data_file:dir create_dir_perms;
+@@ -195,10 +195,10 @@ allow vold user_profile_foreign_dex_data_file:dir { getattr setattr };
+ # Raw writes to misc block device
+ allow vold misc_block_device:blk_file w_file_perms;
  
 -neverallow { domain -vold } vold_data_file:dir ~{ open create read getattr setattr search relabelto ioctl };
 -neverallow { domain -vold } vold_data_file:notdevfile_class_set ~{ relabelto getattr };
