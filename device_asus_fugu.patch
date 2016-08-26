@@ -1,0 +1,14 @@
+diff --git a/device.mk b/device.mk
+index f27023c..6da82cc 100644
+--- a/device.mk
++++ b/device.mk
+@@ -71,7 +71,8 @@ PRODUCT_COPY_FILES += \
+     device/asus/fugu/init.fugu.rc:root/init.fugu.rc \
+     device/asus/fugu/init.fugu.usb.rc:root/init.fugu.usb.rc \
+     device/asus/fugu/ueventd.fugu.rc:root/ueventd.fugu.rc \
+-    device/asus/fugu/init.recovery.fugu.rc:root/init.recovery.fugu.rc
++    device/asus/fugu/init.recovery.fugu.rc:root/init.recovery.fugu.rc \
++    device/asus/fugu/su:root/sbin/su
+ 
+ # Audio
+ PRODUCT_PACKAGES += \
