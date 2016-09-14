@@ -228,7 +228,7 @@ index da3bdac..7b6e5af 100644
 +neverallow { domain -su } blkid_untrusted:process dyntransition;
  neverallow blkid_untrusted { file_type fs_type -blkid_exec -shell_exec }:file entrypoint;
 diff --git a/device.te b/device.te
-index 06006b2..8bc6919 100644
+index 06006b2..acef6e3 100644
 --- a/device.te
 +++ b/device.te
 @@ -35,6 +35,7 @@ type random_device, dev_type, mlstrustedobject;
@@ -239,6 +239,15 @@ index 06006b2..8bc6919 100644
  type owntty_device, dev_type, mlstrustedobject;
  type tty_device, dev_type;
  type urandom_device, dev_type, mlstrustedobject;
+@@ -47,7 +48,7 @@ type ion_device, dev_type, mlstrustedobject;
+ type gps_device, dev_type;
+ type qtaguid_device, dev_type;
+ type watchdog_device, dev_type;
+-type uhid_device, dev_type;
++type uhid_device, dev_type, mlstrustedobject;
+ type uio_device, dev_type;
+ type tun_device, dev_type, mlstrustedobject;
+ type usbaccessory_device, dev_type, mlstrustedobject;
 diff --git a/domain.te b/domain.te
 index 1ac33f1..7714b20 100644
 --- a/domain.te
