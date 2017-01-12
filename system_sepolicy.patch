@@ -1,5 +1,5 @@
 diff --git a/app.te b/app.te
-index f2adf37..8f2b0f0 100644
+index e9dd7b3..dc511cd 100644
 --- a/app.te
 +++ b/app.te
 @@ -274,14 +274,14 @@ allow appdomain cache_file:dir getattr;
@@ -193,8 +193,8 @@ index f2adf37..8f2b0f0 100644
    apk_data_file
    cache_file
    cache_recovery_file
-@@ -439,5 +439,5 @@ neverallow appdomain {
- }:lnk_file no_w_file_perms;
+@@ -454,5 +454,5 @@ neverallow {
+ }:file no_x_file_perms;
  
  # Foreign dex profiles are just markers. Prevent apps to do anything but touch them.
 -neverallow appdomain user_profile_foreign_dex_data_file:file rw_file_perms;
@@ -249,7 +249,7 @@ index 06006b2..acef6e3 100644
  type tun_device, dev_type, mlstrustedobject;
  type usbaccessory_device, dev_type, mlstrustedobject;
 diff --git a/domain.te b/domain.te
-index 1ac33f1..7714b20 100644
+index 45569de..222391b 100644
 --- a/domain.te
 +++ b/domain.te
 @@ -148,12 +148,13 @@ allow domain fs_type:dir getattr;
@@ -374,12 +374,12 @@ index 1ac33f1..7714b20 100644
  # Limit what domains can mount filesystems or change their mount flags.
  # sdcard_type / vfat is exempt as a larger set of domains need
  # this capability, including device-specific domains.
--neverallow { domain -kernel -init -recovery -vold -zygote -update_engine } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
-+neverallow { domain -kernel -init -recovery -vold -zygote -update_engine -su } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
+-neverallow { domain -kernel -init -recovery -vold -zygote -update_engine -otapreopt_chroot } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
++neverallow { domain -kernel -init -recovery -vold -zygote -update_engine -otapreopt_chroot -su } { fs_type -sdcard_type }:filesystem { mount remount relabelfrom relabelto };
  
  #
  # Assert that, to the extent possible, we're not loading executable content from
-@@ -285,9 +288,10 @@ neverallow {
+@@ -285,14 +288,16 @@ neverallow {
      domain
      -appdomain # for oemfs
      -recovery # for /tmp/update_binary in tmpfs
@@ -391,15 +391,13 @@ index 1ac33f1..7714b20 100644
  
  # Protect most domains from executing arbitrary content from /data.
  neverallow {
-@@ -295,6 +299,7 @@ neverallow {
-   -untrusted_app
-   -priv_app
-   -shell
+   domain
+   -appdomain
 +  -su
  } {
    data_file_type
    -dalvikcache_data_file
-@@ -302,35 +307,35 @@ neverallow {
+@@ -300,35 +305,35 @@ neverallow {
    -apk_data_file
  }:file no_x_file_perms;
  
@@ -448,7 +446,7 @@ index 1ac33f1..7714b20 100644
      { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Do not allow service_manager add for default_android_service.
-@@ -338,20 +343,20 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
+@@ -336,20 +341,20 @@ neverallow { domain -recovery } contextmount_type:dir_file_class_set
  # system_app_service rather than the generic type.
  # New service_types are defined in service.te and new mappings
  # from service name to service_type are defined in service_contexts.
@@ -475,7 +473,7 @@ index 1ac33f1..7714b20 100644
  
  # No domains other than a select few can access the misc_block_device. This
  # block device is reserved for OTA use.
-@@ -366,14 +371,16 @@ neverallow {
+@@ -364,14 +369,16 @@ neverallow {
    -vold
    -recovery
    -ueventd
@@ -501,7 +499,7 @@ index 1ac33f1..7714b20 100644
    -init
    -installd
    -postinstall_dexopt
-@@ -391,8 +399,8 @@ neverallow {
+@@ -393,8 +401,8 @@ neverallow {
  } dalvikcache_data_file:dir no_w_dir_perms;
  
  # Only system_server should be able to send commands via the zygote socket
@@ -512,7 +510,7 @@ index 1ac33f1..7714b20 100644
  
  # Android does not support System V IPCs.
  #
-@@ -410,23 +418,23 @@ neverallow { domain -system_server } zygote_socket:sock_file write;
+@@ -412,23 +420,23 @@ neverallow { domain -system_server } zygote_socket:sock_file write;
  # that, even assuming only non-buggy and non-malicious code, it is very likely
  # that over time, the kernel global tables used to implement SysV IPCs will fill
  # up.
@@ -540,7 +538,7 @@ index 1ac33f1..7714b20 100644
    file_type
    -system_data_file
    -apk_data_file
-@@ -437,20 +445,20 @@ neverallow * {
+@@ -439,20 +447,20 @@ neverallow * {
  # Do not allow making the stack or heap executable.
  # We would also like to minimize execmem but it seems to be
  # required by some device-specific service domains.
@@ -564,7 +562,7 @@ index 1ac33f1..7714b20 100644
  neverallow ~domain domain:process { transition dyntransition };
  
  #
-@@ -463,6 +471,7 @@ neverallow ~domain domain:process { transition dyntransition };
+@@ -465,6 +473,7 @@ neverallow ~domain domain:process { transition dyntransition };
  #
  neverallow {
    domain
@@ -572,7 +570,7 @@ index 1ac33f1..7714b20 100644
    -system_server
    -system_app
    -init
-@@ -479,6 +488,7 @@ neverallow installd system_data_file:file ~{ r_file_perms relabelfrom unlink };
+@@ -481,6 +490,7 @@ neverallow installd system_data_file:file ~{ r_file_perms relabelfrom unlink };
  #
  neverallow {
    domain
@@ -580,7 +578,7 @@ index 1ac33f1..7714b20 100644
    -adbd
    -init
    -runas
-@@ -489,6 +499,7 @@ neverallow {
+@@ -496,6 +506,7 @@ neverallow { domain -runas -zygote } {
  # This is to prevent malicious symlink attacks.
  neverallow {
    domain
@@ -588,7 +586,7 @@ index 1ac33f1..7714b20 100644
    -appdomain
    -installd
    -uncrypt  # TODO: see if we can remove
-@@ -496,6 +507,7 @@ neverallow {
+@@ -503,6 +514,7 @@ neverallow {
  
  neverallow {
    domain
@@ -596,7 +594,7 @@ index 1ac33f1..7714b20 100644
    -shell
    userdebug_or_eng(`-uncrypt')
    -installd
-@@ -513,6 +525,7 @@ neverallow {
+@@ -520,6 +532,7 @@ neverallow {
    -init
    -shell
    -vold
@@ -604,7 +602,7 @@ index 1ac33f1..7714b20 100644
  } shell_data_file:dir no_w_dir_perms;
  
  neverallow {
-@@ -538,7 +551,7 @@ neverallow {
+@@ -545,7 +558,7 @@ neverallow {
  } shell_data_file:file open;
  
  # servicemanager is the only process which handles list request
@@ -613,7 +611,7 @@ index 1ac33f1..7714b20 100644
  
  # only service_manager_types can be added to service_manager
  neverallow * ~service_manager_type:service_manager { add find };
-@@ -557,13 +570,13 @@ neverallow * ~property_type:property_service set;
+@@ -564,13 +577,13 @@ neverallow * ~property_type:property_service set;
  # init_daemon_domain(mydaemon)
  # $ grep mydaemon file_contexts
  # /system/bin/mydaemon -- u:object_r:mydaemon_exec:s0
@@ -629,7 +627,7 @@ index 1ac33f1..7714b20 100644
  
  neverallow {
    domain
-@@ -571,6 +584,7 @@ neverallow {
+@@ -578,6 +591,7 @@ neverallow {
    -recovery
    -sdcardd
    -vold
@@ -637,7 +635,7 @@ index 1ac33f1..7714b20 100644
  } fuse_device:chr_file open;
  neverallow {
    domain
-@@ -582,6 +596,7 @@ neverallow {
+@@ -589,6 +603,7 @@ neverallow {
    -system_server
    -ueventd
    -vold
@@ -645,7 +643,7 @@ index 1ac33f1..7714b20 100644
  } fuse_device:chr_file *;
  
  # Profiles contain untrusted data and profman parses that. We should only run
-@@ -590,9 +605,10 @@ neverallow {
+@@ -597,9 +612,10 @@ neverallow {
    domain
    -installd
    -profman
@@ -658,7 +656,7 @@ index 1ac33f1..7714b20 100644
 -neverallow * ~{ system_file rootfs }:system module_load;
 +neverallow { domain -su } ~{ system_file rootfs }:system module_load;
 diff --git a/file_contexts b/file_contexts
-index 0192ea3..4414eae 100644
+index 3d91e2b..8d95ad5 100644
 --- a/file_contexts
 +++ b/file_contexts
 @@ -17,6 +17,7 @@
@@ -706,7 +704,7 @@ index e394af3..51dbb44 100644
 -neverallow { domain -gatekeeperd } gatekeeper_service:service_manager add;
 +neverallow { domain -su -gatekeeperd } gatekeeper_service:service_manager add;
 diff --git a/init.te b/init.te
-index 6197c39..c01d0a6 100644
+index 9bc78d1..738f41b 100644
 --- a/init.te
 +++ b/init.te
 @@ -95,6 +95,7 @@ allow init contextmount_type:notdevfile_class_set r_file_perms;
@@ -772,10 +770,10 @@ index 570cbca..196dcbb 100644
 -neverallow * lmkd:process noatsecure;
 +neverallow { domain -su } lmkd:process noatsecure;
 diff --git a/logd.te b/logd.te
-index 97bbd8b..386072e 100644
+index bc97a37..3caea88 100644
 --- a/logd.te
 +++ b/logd.te
-@@ -62,6 +62,6 @@ neverallow logd { app_data_file system_data_file }:dir_file_class_set write;
+@@ -63,6 +63,6 @@ neverallow logd { app_data_file system_data_file }:dir_file_class_set write;
  neverallow logd { file_type -logd_tmpfs userdebug_or_eng(` -misc_logd_file -coredump_file ') }:file { create write append };
  
  # logpersist is only allowed on userdebug/eng builds
@@ -799,25 +797,15 @@ index 9b44e4b..5d71e44 100644
 +neverallow { domain -system_server -dumpstate -su } netd:binder call;
  neverallow netd { domain -system_server -servicemanager userdebug_or_eng(`-su') }:binder call;
 diff --git a/postinstall.te b/postinstall.te
-index 5c261ef..9f7d81e 100644
+index 0f6bb74..472d7e6 100644
 --- a/postinstall.te
 +++ b/postinstall.te
-@@ -21,7 +21,7 @@ allow postinstall toolbox_exec:file rx_file_perms;
- 
- # No domain other than update_engine should transition to postinstall, as it is
- # only meant to run during the update.
--neverallow { domain -update_engine } postinstall:process { transition dyntransition };
-+neverallow { domain -update_engine -su } postinstall:process { transition dyntransition };
- 
- #
- # For OTA dexopt.
-@@ -32,4 +32,4 @@ binder_use(postinstall)
- binder_call(postinstall, system_server)
- 
- # Need to talk to the otadexopt service.
--allow postinstall otadexopt_service:service_manager find;
-\ No newline at end of file
-+allow postinstall otadexopt_service:service_manager find;
+@@ -35,4 +35,4 @@ domain_auto_trans(postinstall, otapreopt_chroot_exec, otapreopt_chroot)
+ # No domain other than update_engine and recovery (via update_engine_sideload)
+ # should transition to postinstall, as it is only meant to run during the
+ # update.
+-neverallow { domain -update_engine -recovery } postinstall:process { transition dyntransition };
++neverallow { domain -update_engine -recovery -su } postinstall:process { transition dyntransition };
 diff --git a/sgdisk.te b/sgdisk.te
 index 43636d4..f96ecbf 100644
 --- a/sgdisk.te
@@ -936,10 +924,10 @@ index 55de7eb..033fcd4 100644
 +neverallow { domain -su } toolbox:process dyntransition;
  neverallow toolbox { file_type fs_type -toolbox_exec}:file entrypoint;
 diff --git a/untrusted_app.te b/untrusted_app.te
-index 6bc6843..d219793 100644
+index 35c811c..9e8d5e0 100644
 --- a/untrusted_app.te
 +++ b/untrusted_app.te
-@@ -78,6 +78,10 @@ allow untrusted_app radio_service:service_manager find;
+@@ -79,6 +79,10 @@ allow untrusted_app radio_service:service_manager find;
  allow untrusted_app surfaceflinger_service:service_manager find;
  allow untrusted_app app_api_service:service_manager find;
  
@@ -950,7 +938,7 @@ index 6bc6843..d219793 100644
  # Allow GMS core to access perfprofd output, which is stored
  # in /data/misc/perfprofd/. GMS core will need to list all
  # data stored in that directory to process them one by one.
-@@ -89,6 +93,8 @@ userdebug_or_eng(`
+@@ -90,6 +94,8 @@ userdebug_or_eng(`
  # gdbserver for ndk-gdb ptrace attaches to app process.
  allow untrusted_app self:process ptrace;
  

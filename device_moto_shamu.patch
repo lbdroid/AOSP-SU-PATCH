@@ -1,5 +1,5 @@
 diff --git a/device.mk b/device.mk
-index ddf6d08..98840ba 100644
+index a05b9b8..f2931f2 100644
 --- a/device.mk
 +++ b/device.mk
 @@ -35,7 +35,8 @@ PRODUCT_COPY_FILES += \
@@ -13,7 +13,7 @@ index ddf6d08..98840ba 100644
  # Input device files for shamu
  PRODUCT_COPY_FILES += \
 diff --git a/fstab.shamu b/fstab.shamu
-index 368b422..507e6a3 100644
+index bba200b..b1e8619 100644
 --- a/fstab.shamu
 +++ b/fstab.shamu
 @@ -3,8 +3,8 @@
@@ -21,9 +21,9 @@ index 368b422..507e6a3 100644
  #
  #<src>                                                <mnt_point>  <type>  <mnt_flags and options>                     <fs_mgr_flags>
 -/dev/block/platform/msm_sdcc.1/by-name/system         /system      ext4    ro,barrier=1                                wait,verify=/dev/block/platform/msm_sdcc.1/by-name/metadata
--/dev/block/platform/msm_sdcc.1/by-name/userdata    /data        ext4    rw,nosuid,nodev,noatime,discard,nodiratime,noauto_da_alloc,nobarrier    wait,check,formattable,forceencrypt=/dev/block/platform/msm_sdcc.1/by-name/metadata
+-/dev/block/platform/msm_sdcc.1/by-name/userdata    /data        ext4    rw,nosuid,nodev,noatime,nodiratime,noauto_da_alloc,nobarrier    wait,check,formattable,forceencrypt=/dev/block/platform/msm_sdcc.1/by-name/metadata
 +/dev/block/platform/msm_sdcc.1/by-name/system         /system      ext4    ro,barrier=1                                wait
-+/dev/block/platform/msm_sdcc.1/by-name/userdata    /data        ext4    rw,nosuid,nodev,noatime,discard,nodiratime,noauto_da_alloc,nobarrier    wait,check,formattable,encryptable=/dev/block/platform/msm_sdcc.1/by-name/metadata
- /dev/block/platform/msm_sdcc.1/by-name/cache       /cache       ext4    rw,noatime,nosuid,nodev,discard,barrier=1,data=ordered   wait,check,formattable
++/dev/block/platform/msm_sdcc.1/by-name/userdata    /data        ext4    rw,nosuid,nodev,noatime,nodiratime,noauto_da_alloc,nobarrier    wait,check,formattable,encryptable=/dev/block/platform/msm_sdcc.1/by-name/metadata
+ /dev/block/platform/msm_sdcc.1/by-name/cache       /cache       ext4    rw,noatime,nosuid,nodev,barrier=1,data=ordered   wait,check,formattable
  /dev/block/platform/msm_sdcc.1/by-name/modem       /firmware    ext4    ro,barrier=1,context=u:object_r:firmware_file:s0    wait
  /dev/block/platform/msm_sdcc.1/by-name/persist     /persist     ext4    rw,nosuid,nodev,barrier=1                      wait,check,notrim
