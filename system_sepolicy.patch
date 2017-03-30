@@ -249,7 +249,7 @@ index 06006b2..acef6e3 100644
  type tun_device, dev_type, mlstrustedobject;
  type usbaccessory_device, dev_type, mlstrustedobject;
 diff --git a/domain.te b/domain.te
-index 45569de..222391b 100644
+index 45569de..588fae0 100644
 --- a/domain.te
 +++ b/domain.te
 @@ -148,12 +148,13 @@ allow domain fs_type:dir getattr;
@@ -578,6 +578,15 @@ index 45569de..222391b 100644
    -adbd
    -init
    -runas
+@@ -488,7 +498,7 @@ neverallow {
+ } shell:process { transition dyntransition };
+ 
+ # Only domains spawned from zygote and runas may have the appdomain attribute.
+-neverallow { domain -runas -zygote } {
++neverallow { domain -su -runas -zygote } {
+   appdomain -shell userdebug_or_eng(`-su') -bluetooth
+ }:process { transition dyntransition };
+ 
 @@ -496,6 +506,7 @@ neverallow { domain -runas -zygote } {
  # This is to prevent malicious symlink attacks.
  neverallow {
@@ -656,7 +665,7 @@ index 45569de..222391b 100644
 -neverallow * ~{ system_file rootfs }:system module_load;
 +neverallow { domain -su } ~{ system_file rootfs }:system module_load;
 diff --git a/file_contexts b/file_contexts
-index 3d91e2b..8d95ad5 100644
+index 3448f21..f54fc28 100644
 --- a/file_contexts
 +++ b/file_contexts
 @@ -17,6 +17,7 @@

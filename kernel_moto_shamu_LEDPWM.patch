@@ -1,0 +1,264 @@
+diff --git a/arch/arm/boot/dts/apq8084-shamu/apq8084-moto-common.dtsi b/arch/arm/boot/dts/apq8084-shamu/apq8084-moto-common.dtsi
+index 7a412f9..0c7b6f2 100644
+--- a/arch/arm/boot/dts/apq8084-shamu/apq8084-moto-common.dtsi
++++ b/arch/arm/boot/dts/apq8084-shamu/apq8084-moto-common.dtsi
+@@ -1154,12 +1154,6 @@
+ 			};
+ 		};
+ 	};
+-
+-	qcom,pma8084@1 {
+-		pma8084_lpg2: pwm@b200 {
+-			#pwm-cells = <2>;
+-		};
+-	};
+ };
+ 
+ &usb3 {
+diff --git a/arch/arm/boot/dts/apq8084-shamu/apq8084-shamu.dtsi b/arch/arm/boot/dts/apq8084-shamu/apq8084-shamu.dtsi
+index 732f1de..3e10a3d 100644
+--- a/arch/arm/boot/dts/apq8084-shamu/apq8084-shamu.dtsi
++++ b/arch/arm/boot/dts/apq8084-shamu/apq8084-shamu.dtsi
+@@ -155,8 +155,8 @@
+ 		qcom,pull = <5>;		/* No Pull */
+ 		qcom,invert = <0>;		/* Do not invert the output */
+ 		qcom,vin-sel = <0>;		/* VIN 0*/
+-		qcom,src-sel = <2>;		/* FUNC 1 */
+-		qcom,out-strength = <2>;	/* Medium drive strength */
++		qcom,src-sel = <2>;		/* FUNC 1 = LPG */
++		qcom,out-strength = <1>;	/* Low drive strength */
+ 		qcom,master-en = <1>;		/* Enable GPIO */
+ 	};
+ 
+@@ -166,8 +166,8 @@
+ 		qcom,pull = <5>;		/* No Pull */
+ 		qcom,invert = <0>;		/* Do not invert the output */
+ 		qcom,vin-sel = <0>;		/* VIN 0*/
+-		qcom,src-sel = <2>;		/* FUNC 1 */
+-		qcom,out-strength = <2>;	/* Medium drive strength */
++		qcom,src-sel = <2>;		/* FUNC 1 = LPG */
++		qcom,out-strength = <1>;	/* Low drive strength */
+ 		qcom,master-en = <1>;		/* Enable GPIO */
+ 	};
+ 
+@@ -177,8 +177,8 @@
+ 		qcom,pull = <5>;		/* No Pull */
+ 		qcom,invert = <0>;		/* Do not invert the output */
+ 		qcom,vin-sel = <0>;		/* VIN 0*/
+-		qcom,src-sel = <2>;		/* FUNC 1 */
+-		qcom,out-strength = <2>;	/* Medium drive strength */
++		qcom,src-sel = <2>;		/* FUNC 1 = LPG */
++		qcom,out-strength = <1>;	/* Low drive strength */
+ 		qcom,master-en = <1>;		/* Enable GPIO */
+ 	};
+ };
+@@ -228,14 +228,36 @@
+ 			compatible = "qcom,leds-qpnp";
+ 			reg = <0xc600 0x100>;
+ 			status = "okay";
+-			qcom,led_gpio_7 {
+-				label = "gpio";
++			qcom,led_lpg_red {
++				label = "rgb";
+ 				linux,name = "red";
+-				qcom,max-current = <20>;
+-				qcom,id = <8>;
+-				qcom,source-sel = <1>;
+-				qcom,mode-ctrl = <0x10>;
+-				qcom,vin-ctrl = <0x02>;
++				qcom,mode = "pwm";
++				qcom,pwm-channel = <2>;
++/*				qcom,duty-ms = <20>;
++				qcom,start-idx = <1>;
++				qcom,idx-len = <10>;
++				qcom,duty-pcts = [00 19 32 4B 64
++						 64 4B 32 19 00];
++				qcom,max-current = <12>;
++				qcom,default-state = "off";
++				qcom,id = <3>;
++				linux,default-trigger = "none";
++*/
++				qcom,start-idx = <1>;
++				qcom,idx-len = <10>;
++				qcom,duty-pcts = [00 19 32 4B 64
++						 64 4B 32 19 00];
++				qcom,lut-flags = <3>;
++				qcom,pause-lo = <0>;
++				qcom,pause-hi = <0>;
++				qcom,ramp-step-ms = <255>;
++				qcom,max-current = <12>;
++				qcom,default-state = "on";
++				qcom,turn-off-delay-ms = <500>;
++				qcom,id = <3>;
++				linux,default-trigger = "none";
++				qcom,pwm-us = <1000>;
++				qcom,use-blink;
+ 			};
+ 		};
+ 
+@@ -244,13 +266,25 @@
+ 			reg = <0xc700 0x100>;
+ 			status = "okay";
+ 			qcom,led_gpio_8 {
+-				label = "gpio";
++				label = "rgb";
+ 				linux,name = "green";
+-				qcom,max-current = <20>;
+-				qcom,id = <8>;
+-				qcom,source-sel = <1>;
+-				qcom,mode-ctrl = <0x10>;
+-				qcom,vin-ctrl = <0x02>;
++				qcom,mode = "pwm";
++				qcom,pwm-channel = <3>;
++				qcom,start-idx = <1>;
++				qcom,idx-len = <10>;
++				qcom,duty-pcts = [00 19 32 4B 64
++						 64 4B 32 19 00];
++				qcom,lut-flags = <3>;
++				qcom,pause-lo = <0>;
++				qcom,pause-hi = <0>;
++				qcom,ramp-step-ms = <255>;
++				qcom,max-current = <12>;
++				qcom,default-state = "on";
++				qcom,turn-off-delay-ms = <500>;
++				qcom,id = <4>;
++				linux,default-trigger = "none";
++				qcom,pwm-us = <1000>;
++				qcom,use-blink;
+ 			};
+ 		};
+ 
+@@ -259,16 +293,59 @@
+ 			reg = <0xc800 0x100>;
+ 			status = "okay";
+ 			qcom,led_gpio_9 {
+-				label = "gpio";
++				label = "rgb";
+ 				linux,name = "blue";
+-				qcom,max-current = <20>;
+-				qcom,id = <8>;
+-				qcom,source-sel = <1>;
+-				qcom,mode-ctrl = <0x10>;
+-				qcom,vin-ctrl = <0x02>;
++				qcom,mode = "pwm";
++				qcom,pwm-channel = <4>;
++				qcom,start-idx = <1>;
++				qcom,idx-len = <10>;
++				qcom,duty-pcts = [00 19 32 4B 64
++						 64 4B 32 19 00];
++				qcom,lut-flags = <3>;
++				qcom,pause-lo = <0>;
++				qcom,pause-hi = <0>;
++				qcom,ramp-step-ms = <255>;
++				qcom,max-current = <12>;
++				qcom,default-state = "on";
++				qcom,turn-off-delay-ms = <500>;
++				qcom,id = <5>;
++				linux,default-trigger = "none";
++				qcom,pwm-us = <1000>;
++				qcom,use-blink;
+ 			};
+ 		};
+ 	};
++	qcom,pma8084@1 {
++		pma8084_lpg3: pwm@b300 {
++			compatible = "qcom,qpnp-pwm";
++			reg = <0xb300 0x100>,
++			      <0xb042 0x7e>;
++			reg-names = "qpnp-lpg-channel-base", "qpnp-lpg-lut-base";
++			qcom,channel-id = <2>;
++			qcom,supported-sizes = <6>, <7>, <9>;
++			qcom,ramp-index = <2>;
++		};
++
++		pma8084_lpg4: pwm@b400 {
++			compatible = "qcom,qpnp-pwm";
++			reg = <0xb400 0x100>,
++			      <0xb042 0x7e>;
++			reg-names = "qpnp-lpg-channel-base", "qpnp-lpg-lut-base";
++			qcom,channel-id = <3>;
++			qcom,supported-sizes = <6>, <7>, <9>;
++			qcom,ramp-index = <3>;
++		};
++
++		pma8084_lpg5: pwm@b500 {
++			compatible = "qcom,qpnp-pwm";
++			reg = <0xb500 0x100>,
++			      <0xb042 0x7e>;
++			reg-names = "qpnp-lpg-channel-base", "qpnp-lpg-lut-base";
++			qcom,channel-id = <4>;
++			qcom,supported-sizes = <6>, <7>, <9>;
++			qcom,ramp-index = <4>;
++		};
++	};
+ };
+ 
+ &pma8084_l18 {
+diff --git a/arch/arm/boot/dts/qcom/msm8974pro-ac-pma8084-pm8941.dtsi b/arch/arm/boot/dts/qcom/msm8974pro-ac-pma8084-pm8941.dtsi
+index 9742ceb..d21fe0b 100644
+--- a/arch/arm/boot/dts/qcom/msm8974pro-ac-pma8084-pm8941.dtsi
++++ b/arch/arm/boot/dts/qcom/msm8974pro-ac-pma8084-pm8941.dtsi
+@@ -259,7 +259,7 @@
+  * Disable PMA8084 PWM/LPG devices in order to avoid a channel-id collision
+  * with PM8941 PWM/LPG devices.
+  */
+-&pma8084_lpg1 {
++/*&pma8084_lpg1 {
+ 	status = "disabled";
+ };
+ 
+@@ -281,4 +281,4 @@
+ 
+ &pma8084_lpg6 {
+ 	status = "disabled";
+-};
++};*/
+diff --git a/arch/arm/configs/shamu_defconfig b/arch/arm/configs/shamu_defconfig
+index eed5ef5..c08f163 100644
+--- a/arch/arm/configs/shamu_defconfig
++++ b/arch/arm/configs/shamu_defconfig
+@@ -516,6 +516,7 @@ CONFIG_LEDS_QPNP=y
+ CONFIG_LEDS_TRIGGERS=y
+ CONFIG_LEDS_TRIGGER_BACKLIGHT=y
+ CONFIG_LEDS_TRIGGER_DEFAULT_ON=y
++CONFIG_LEDS_TRIGGER_TIMER=y
+ CONFIG_SWITCH=y
+ CONFIG_RTC_CLASS=y
+ CONFIG_RTC_DRV_QPNP=y
+diff --git a/drivers/leds/led-core.c b/drivers/leds/led-core.c
+index ce8921a..6cec767 100644
+--- a/drivers/leds/led-core.c
++++ b/drivers/leds/led-core.c
+@@ -64,7 +64,7 @@ static void led_blink_setup(struct led_classdev *led_cdev,
+ 
+ 	/* blink with 1 Hz as default if nothing specified */
+ 	if (!*delay_on && !*delay_off)
+-		*delay_on = *delay_off = 500;
++		*delay_on = 500; *delay_off = 3500;
+ 
+ 	led_set_software_blink(led_cdev, *delay_on, *delay_off);
+ }
+diff --git a/drivers/leds/leds-qpnp.c b/drivers/leds/leds-qpnp.c
+index 4d812e5..1ddbb6d 100644
+--- a/drivers/leds/leds-qpnp.c
++++ b/drivers/leds/leds-qpnp.c
+@@ -10,6 +10,7 @@
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  * GNU General Public License for more details.
+  */
++#define DEBUG
+ 
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+diff --git a/drivers/pwm/pwm-qpnp.c b/drivers/pwm/pwm-qpnp.c
+index 2401249..abc9ab8 100644
+--- a/drivers/pwm/pwm-qpnp.c
++++ b/drivers/pwm/pwm-qpnp.c
+@@ -15,6 +15,7 @@
+  * The HW module is also called LPG (Light Pattern Generator).
+  */
+ 
++#define DEBUG
+ #define pr_fmt(fmt) "%s: " fmt, __func__
+ 
+ #include <linux/module.h>
